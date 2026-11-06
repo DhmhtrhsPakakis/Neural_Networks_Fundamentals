@@ -48,7 +48,6 @@ def extract_resnet_embeddings(X_train, X_test, cache_dir="../data/features", bat
     test_cache = os.path.join(cache_dir, f"resnet_test_{len(X_test)}.npy")
     
     if os.path.exists(train_cache) and os.path.exists(test_cache):
-        print("Φόρτωση έτοιμων ResNet18 embeddings από τον δίσκο...")
         return np.load(train_cache), np.load(test_cache)
     
     device = torch.device("cpu")

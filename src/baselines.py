@@ -2,7 +2,7 @@
 import time
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score
 
 def evaluate_baselines_on_features(X_train, y_train, X_test, y_test, feature_name):
     """
@@ -13,8 +13,8 @@ def evaluate_baselines_on_features(X_train, y_train, X_test, y_test, feature_nam
     """
     models = {
         "Nearest Class Centroid (NCC)": NearestCentroid(),
-        "1-Nearest Neighbor (1-NN)": KNeighborsClassifier(n_neighbors=1, n_jobs=-1, metric='euclidean'),
-        "3-Nearest Neighbors (3-NN)": KNeighborsClassifier(n_neighbors=3, n_jobs=-1, metric='euclidean')
+        "1-Nearest Neighbor (1-NN)": KNeighborsClassifier(n_neighbors=1, n_jobs=-1, metric='euclidean', weights="distance"),
+        "3-Nearest Neighbors (3-NN)": KNeighborsClassifier(n_neighbors=3, n_jobs=-1, metric='euclidean',weights="distance")
     }
     
     results = []
@@ -35,17 +35,17 @@ def evaluate_baselines_on_features(X_train, y_train, X_test, y_test, feature_nam
         
         # 3. Compute Accuracy (Evaluate Train on the FULL training set for valid comparison)
         y_pred_train = model.predict(X_train)
-        train_acc = accuracy_score(y_train, y_pred_train) * 100
-        test_acc = accuracy_score(y_test, y_pred_test) * 100
+        train_acc = f1_score(y_train, y_pred_train,average="macro") * 100
+        test_acc = f1_score(y_test, y_pred_test,average="macro") * 100
         
-        print(f"{model_name:30s} | Test Acc: {test_acc:5.2f}% | Fit: {fit_time:.3f}s | Predict: {pred_time:.2f}s")
+        print(f"{model_name:30s} | Test Macro-F1: {test_acc:5.2f}% | Fit: {fit_time:.3f}s | Predict: {pred_time:.2f}s")
         
         results.append({
             "Features": feature_name,
             "Dimensions (D)": X_train.shape[1],
             "Classifier": model_name,
-            "Train Accuracy (%)": round(train_acc, 2),
-            "Test Accuracy (%)": round(test_acc, 2),
+            "Train F1 (%)": round(train_acc, 2),
+            "Test F1 (%)": round(test_acc, 2),
             "Fit Time (sec)": round(fit_time, 4),
             "Predict Time (sec)": round(pred_time, 3)
         })
