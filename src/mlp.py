@@ -94,8 +94,8 @@ class MLPFromScratch:
 
         N = X.shape[0]
 
-        dW = [None]*self.num_layers
-        db = [None]*self.num_layers
+        self.dW = [None]*self.num_layers
+        self.db = [None]*self.num_layers
 
         # Output Layer Error
         dZ = self.A[-1] - Y_true
@@ -103,19 +103,21 @@ class MLPFromScratch:
         # Backpropgation
         for i in reversed(range(self.num_layers)):
 
-            dW[i] = np.dot(self.A[i].T , dZ)/N
-            db[i] = np.sum(dZ, axis=0, keepdims=True)/N
+            self.dW[i] = np.dot(self.A[i].T , dZ)/N
+            self.db[i] = np.sum(dZ, axis=0, keepdims=True)/N
 
             # If we are not in the first layer we send the error backwards
             if i>0:
                 dA_prev = np.dot(dZ,self.W[i].T)
                 dZ = dA_prev * self.relu_derivative(self.Z[i-1])
 
+        return self.dw, self.db
 
+    def update_weights(self):
         # Update Weights
         for i in range(self.num_layers):
-            self.W[i]-=self.lr * dW[i]
-            self.b[i]-=self.lr * db[i]
+            self.W[i]-=self.lr * self.dW[i]
+            self.b[i]-=self.lr * self.db[i]
 
 
     def fit(self, X, y, epochs=10, batch_size=32, X_val=None, y_val=None):
@@ -139,7 +141,8 @@ class MLPFromScratch:
                 
                 self.forward(X_batch)
                 self.backward(X_batch, y_batch_one_hot)
-            
+                self.update_weights()
+
             train_loss, train_acc = self.evaluate(X, y)
             history['train_loss'].append(train_loss)
             history['train_acc'].append(train_acc)
@@ -155,6 +158,89 @@ class MLPFromScratch:
                 print(f"Epoch {epoch+1:03d}/{epochs} | Train Loss: {train_loss:.4f}")
                 
         return history
+
+
+
+    def gradient_checking(self,X,y,epsilon=1e-7, max_params_to_check=5):
+        """
+        Check if backpropogation calulates the gradients right using
+        the Finite-Difference Approximation
+
+        Args:
+            X (_type_): A small Input Batch
+            y (_type_): The labels
+            epsilon (_type_, optional): Defaults to 1e-7.
+            max_params_to_check (int, optional): The number of random weights to check per layer. Defaults to 5.
+        """
+        num_classes = self.W[-1].shape[1]
+        y_one_hot = np.zeros((y.size, num_classes))
+        y_one_hot[np.arange(y.size), y] = 1
+
+        # Calculate Gradients
+        probs = self.forward(X)
+        dW_anal, _ = self.backward(X, y_one_hot)
+
+        passed = True
+
+        for i in range (self.num_layers):
+
+            W_shape = self.W[i].shape
+
+            # We randomly select max_params_to_check weights to test
+            total_params = self.W[i].size
+            num_to_check = min(max_params_to_check, total_params)
+
+            random_indices = np.random.choice(total_params, num_to_check, replace=False)
+
+            for idx in random_indices:
+                row, col = np.unravel_index(idx, W_shape)
+                
+                # Original value
+                original_w = self.W[i][row, col]
+                
+                # --- (w + epsilon) ---
+                self.W[i][row, col] = original_w + epsilon
+                out_plus = self.forward(X)
+                loss_plus = self.compute_ce_loss(out_plus, y_one_hot)
+                
+                # --- (w - epsilon) ---
+                self.W[i][row, col] = original_w - epsilon
+                out_minus = self.forward(X)
+                loss_minus = self.compute_ce_loss(out_minus, y_one_hot)
+                
+                # Use the original weight value
+                self.W[i][row, col] = original_w
+                
+                # calculate Finite Difference
+                grad_num = (loss_plus - loss_minus) / (2 * epsilon)
+                
+                # gradient
+                grad_anal = dW_anal[i][row, col]
+                
+                # Calculate Relative Error
+                numerator = np.abs(grad_num - grad_anal)
+                denominator = np.abs(grad_num) + np.abs(grad_anal) + 1e-10 
+                relative_error = numerator / denominator
+                
+                print(f"  Weight W[{row}, {col}]:")
+                print(f"    Numerical  = {grad_num:.8f}")
+                print(f"    Analytical = {grad_anal:.8f}")
+                print(f"    Rel. Error = {relative_error:.2e}")
+                
+                if relative_error > 1e-7:
+                    print("Gradients are Different")
+                    passed = False
+                else:
+                    print("Gradients are same")
+                    
+        print("-------------------------------------")
+        if passed:
+            print("To Gradient Checking Succesful")
+        else:
+            print("Gradient Checking Failed")
+
+
+
 
     def evaluate(self, X, y):
         probs = self.forward(X)
