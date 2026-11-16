@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from pytorch_mlp import MLPClassifier
-from features import extract_flattened, extract_pca, extract_resnet_embeddings
+from src.pytorch_mlp import MLPClassifier
+from src.features import extract_flattened, extract_pca, extract_resnet_embeddings
 
 def run_cv_grid_search(X_full, y_full, n_samples=5000, n_splits=5, n_components=53, random_state=42):
     
