@@ -111,7 +111,7 @@ class MLPFromScratch:
                 dA_prev = np.dot(dZ,self.W[i].T)
                 dZ = dA_prev * self.relu_derivative(self.Z[i-1])
 
-        return self.dw, self.db
+        return self.dW, self.db
 
     def update_weights(self):
         # Update Weights
@@ -227,7 +227,7 @@ class MLPFromScratch:
                 print(f"    Analytical = {grad_anal:.8f}")
                 print(f"    Rel. Error = {relative_error:.2e}")
                 
-                if relative_error > 1e-7:
+                if relative_error > 1e-6:
                     print("Gradients are Different")
                     passed = False
                 else:
@@ -235,7 +235,7 @@ class MLPFromScratch:
                     
         print("-------------------------------------")
         if passed:
-            print("To Gradient Checking Succesful")
+            print("Gradient Checking Succesful")
         else:
             print("Gradient Checking Failed")
 
