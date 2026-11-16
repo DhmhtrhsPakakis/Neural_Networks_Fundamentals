@@ -1,6 +1,6 @@
 """
 PyTorch Multi-Layer Perceptron (MLP) Classifier Module for Multi-Class Classification.
-Scikit-Learn compatible wrapper supporting dynamic depth, dropout, and early stopping.
+Scikit-Learn compatible wrapper supporting dynamic depth.
 """
 
 import copy
@@ -55,8 +55,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         for out_features in layer_dims:
             layers.append(nn.Linear(in_features, out_features))
             layers.append(nn.ReLU() if self.activation == 'relu' else nn.Tanh())
-            if self.dropout > 0.0:
-                layers.append(nn.Dropout(self.dropout))
+
             in_features = out_features
 
         # Output layer produces raw logits for each class (CrossEntropyLoss applies Softmax internally)
