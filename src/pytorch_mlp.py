@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
+from sklearn.utils.class_weight import compute_class_weight
 
 class MLPClassifier(BaseEstimator, ClassifierMixin):
     """
@@ -20,7 +21,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
     """
     def __init__(self, hidden_layers=[128,64], 
                  activation='relu', learning_rate=1e-3, epochs=100, T_0=15,weight_decay=1e-4,
-                 batch_size=64, random_state=42, verbose=0):
+                 batch_size=64, random_state=42,use_class_weights=False, verbose=0):
         
         self.hidden_layers = hidden_layers
         self.activation = activation
@@ -30,6 +31,7 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
         self.T_0 = T_0
         self.batch_size = batch_size
         self.random_state = random_state
+        self.use_class_weights = use_class_weights
         self.verbose = verbose
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -82,8 +84,22 @@ class MLPClassifier(BaseEstimator, ClassifierMixin):
 
         # Cosine Annealing with Warm Restarts
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=self.T_0, T_mult=1)
-        criterion = nn.CrossEntropyLoss()
 
+        # Use Sample Weights
+        if self.use_class_weights:
+            # Inverse Sample Weights
+            class_weights = compute_class_weight(
+                class_weight='balanced', 
+                classes=self.classes_, 
+                y=y
+            )
+            class_weights_tensor = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
+            # Criterion
+            criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            if self.verbose >= 1:
+                print("Using Class Weights:", np.round(class_weights, 4))
+        else:
+            criterion = nn.CrossEntropyLoss()
         
         # PyTorch Tensors for Training Set (CrossEntropyLoss requires 1D torch.long targets)
         X_tensor = torch.tensor(X, dtype=torch.float32)
