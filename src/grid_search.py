@@ -73,6 +73,7 @@ def run_cv_grid_search(X_full, y_full, n_samples=5000, n_splits=5, n_components=
                 T_0=15,             
                 batch_size=64,     
                 random_state=random_state,
+                use_class_weights=True,
                 verbose=0           
             )
             
